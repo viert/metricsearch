@@ -107,24 +107,24 @@ func syncWorker(indexDir string, dataChannel chan string) {
 }
 
 func dumpWorker(idxFile string, idxNode *node, ev eventChan) {
-	log.Debug("[%s] dumper started", idxFile)
+	log.Debug("<%s> dumper started", idxFile)
 	f, err := os.Create(idxFile)
 	if err != nil {
-		log.Debug("[%s] dumper finished with error: %s", idxFile, err.Error())
+		log.Debug("<%s> dumper finished with error: %s", idxFile, err.Error())
 		ev <- err
 		return
 	}
 	defer f.Close()
 	idxNode.traverseDump("", f)
-	log.Debug("[%s] dumper finished", idxFile)
+	log.Debug("<%s> dumper finished", idxFile)
 	ev <- nil
 }
 
 func loadWorker(idxFile string, idxNode *node, ev eventChan) {
-	log.Debug("[%s] loader started", idxFile)
+	log.Debug("<%s> loader started", idxFile)
 	f, err := os.Open(idxFile)
 	if err != nil {
-		log.Error("[%s] loader finished with error: %s", idxFile, err.Error())
+		log.Error("<%s> loader finished with error: %s", idxFile, err.Error())
 		ev <- err
 		return
 	}
@@ -136,7 +136,7 @@ func loadWorker(idxFile string, idxNode *node, ev eventChan) {
 		tokens := strings.Split(line, ".")
 		idxNode.insert(tokens, &inserted)
 	}
-	log.Debug("[%s] loader finished", idxFile)
+	log.Debug("<%s> loader finished", idxFile)
 	ev <- nil
 }
 
