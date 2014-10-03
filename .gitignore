@@ -8,6 +8,9 @@ _obj
 _test
 index
 
+# Binary
+metricsearch
+
 # Dependencies
 src/github.com
 

@@ -1,0 +1,14 @@
+Source: metricsearch
+Section: admin
+Priority: extra
+Maintainer: Pavel Vorobyov <viert@yandex-team.ru>
+Build-Depends: debhelper (>= 8.0.0), make
+Standards-Version: 3.9.2
+Homepage: https://github.com/viert/metricsearch
+Vcs-Git: git://github.com/viert/metricsearch.git
+Vcs-Browser: https://github.com/viert/metricsearch.git
+
+Package: metricsearch
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Graphite custom metric name search
