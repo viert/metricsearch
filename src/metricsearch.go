@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	format := "%{level} %{message}"
+	var format string
 	log := logging.MustGetLogger("metricsearch")
 
 	var confFile, reindexFile string
@@ -32,6 +32,7 @@ func main() {
 			return
 		}
 		logging.SetBackend(backend)
+		format = "%{program} %{level} %{message}"
 	case "":
 		format = "%{color}%{level} %{color:reset}%{message}"
 	default:
