@@ -1,7 +1,6 @@
 package mstree
 
 import (
-	// logging "github.com/op/go-logging"
 	"io"
 	"regexp"
 	"strings"
