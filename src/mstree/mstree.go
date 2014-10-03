@@ -173,6 +173,26 @@ func (t *MSTree) LoadTxt(filename string, limit int) error {
 	return nil
 }
 
+func (t *MSTree) DropIndex() error {
+	files, err := ioutil.ReadDir(t.indexDir)
+	if err != nil {
+		log.Error("Error opening index: " + err.Error())
+		return err
+	}
+	if len(files) > 0 {
+		for _, file := range files {
+			fName := fmt.Sprintf("%s/%s", t.indexDir, file.Name())
+			if strings.HasSuffix(fName, ".idx") {
+				err := os.Remove(fName)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func (t *MSTree) DumpIndex() error {
 	log.Info("Syncinc the entire index")
 	err := os.MkdirAll(t.indexDir, os.FileMode(0755))

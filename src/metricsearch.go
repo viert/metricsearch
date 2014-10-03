@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"config"
 	"flag"
 	"fmt"
@@ -17,8 +18,10 @@ func main() {
 	log := logging.MustGetLogger("metricsearch")
 
 	var confFile, reindexFile string
+	var stdinImport bool
 	flag.StringVar(&confFile, "c", "/etc/metricsearch.conf", "metricsearch config filename")
 	flag.StringVar(&reindexFile, "reindex", "", "reindex from plain text metrics file")
+	flag.BoolVar(&stdinImport, "stdin", false, "reindex from stdin")
 	flag.Parse()
 
 	conf := config.Load(confFile)
@@ -59,8 +62,27 @@ func main() {
 	debug.SetGCPercent(conf.GCPercent)
 	debug.SetMaxThreads(conf.MaxThreads)
 
+	if stdinImport {
+		err := tree.DropIndex()
+		if err != nil {
+			log.Critical("Error dropping index: %s", err.Error())
+			return
+		}
+		sc := bufio.NewScanner(os.Stdin)
+		for sc.Scan() {
+			tree.Add(sc.Text())
+		}
+		log.Notice("Reindexing complete")
+		return
+	}
+
 	if reindexFile != "" {
-		err := tree.LoadTxt(reindexFile, -1)
+		err := tree.DropIndex()
+		if err != nil {
+			log.Critical("Error dropping index: %s", err.Error())
+			return
+		}
+		err = tree.LoadTxt(reindexFile, -1)
 		if err != nil {
 			log.Critical("Reindexing error, exiting.")
 			return
