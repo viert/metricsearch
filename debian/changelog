@@ -1,3 +1,9 @@
+metricsearch (0.1-1) precise; urgency=low
+
+  * new deafult conffile 
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Fri, 03 Oct 2014 18:06:46 +0400
+
 metricsearch (0.1) unstable; urgency=low
 
   * Initial Release.
