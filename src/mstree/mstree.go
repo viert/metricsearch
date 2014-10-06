@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"runtime/debug"
 	"strings"
 	"time"
 )
@@ -151,6 +152,12 @@ func (t *MSTree) LoadTxt(filename string, limit int) error {
 		return err
 	}
 	defer f.Close()
+
+	// Turn GC off
+	prevGC := debug.SetGCPercent(-1)
+	// Defer to turn GC back on
+	defer debug.SetGCPercent(prevGC)
+
 	scanner := bufio.NewScanner(f)
 	count := 0
 	for scanner.Scan() {
@@ -229,6 +236,12 @@ func (t *MSTree) LoadIndex() error {
 		return err
 	}
 	if len(files) > 0 {
+
+		// Turn GC off
+		prevGC := debug.SetGCPercent(-1)
+		// Defer to turn GC back on
+		defer debug.SetGCPercent(prevGC)
+
 		ev := make(eventChan, len(files))
 		procCount := 0
 		for _, idxFile := range files {
