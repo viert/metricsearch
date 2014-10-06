@@ -72,6 +72,7 @@ func main() {
 		format = "%{color}%{level} %{color:reset}%{message}"
 	default:
 		logfileName = conf.Log
+		reopenLog()
 		go hupCatcher()
 		format = "[%{time:2006-01-02 15:04:05}] %{level} %{message}"
 	}
