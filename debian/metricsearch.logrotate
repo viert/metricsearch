@@ -1,0 +1,12 @@
+/var/log/metricsearch.log
+{
+    rotate 7
+    daily
+    missingok
+    notifempty
+    delaycompress
+    compress
+    postrotate
+        /etc/init.d/metricsearch reload
+    endscript
+}
