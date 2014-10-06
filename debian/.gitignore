@@ -2,3 +2,4 @@ files
 *.log
 *.substvars
 metricsearch
+*.debhelper
