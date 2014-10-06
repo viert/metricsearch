@@ -1,3 +1,10 @@
+metricsearch (0.1-4) precise; urgency=low
+
+  * log opening fix
+  * background daemon 
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Mon, 06 Oct 2014 13:37:06 +0400
+
 metricsearch (0.1-3) precise; urgency=low
 
   * logrotate
