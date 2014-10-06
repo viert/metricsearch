@@ -5,6 +5,7 @@ import (
 	"io"
 	"mstree"
 	"net/http"
+	"runtime"
 	"time"
 )
 
@@ -45,10 +46,18 @@ func (s *Server) addHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Ok")
 }
 
+func (s *Server) stackHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	buf := make([]byte, 65536)
+	n := runtime.Stack(buf, true)
+	w.Write(buf[:n])
+}
+
 func NewServer(tree *mstree.MSTree) *Server {
 	server := &Server{tree}
 	http.HandleFunc("/search", server.searchHandler)
 	http.HandleFunc("/add", server.addHandler)
+	http.HandleFunc("/debug/stack", server.stackHandler)
 	return server
 }
 
