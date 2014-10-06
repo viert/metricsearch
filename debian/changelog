@@ -1,3 +1,23 @@
+metricsearch (0.2-1) precise; urgency=low
+
+  * Minor fixes
+  * Go1.3.3 build
+  * New release version
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Mon, 06 Oct 2014 14:23:06 +0400
+
+metricsearch (0.1-6.1) precise; urgency=low
+
+  * performance rebuild
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Mon, 06 Oct 2014 14:15:54 +0400
+
+metricsearch (0.1-6) precise; urgency=low
+
+  * pidfile creation
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Mon, 06 Oct 2014 14:00:52 +0400
+
 metricsearch (0.1-5) precise; urgency=low
 
   * initscript reload enabled 
