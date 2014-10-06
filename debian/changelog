@@ -1,3 +1,9 @@
+metricsearch (0.1-5) precise; urgency=low
+
+  * initscript reload enabled 
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Mon, 06 Oct 2014 13:45:18 +0400
+
 metricsearch (0.1-4) precise; urgency=low
 
   * log opening fix
