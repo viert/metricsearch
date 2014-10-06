@@ -8,18 +8,50 @@ import (
 	logging "github.com/op/go-logging"
 	"mstree"
 	"os"
+	"os/signal"
 	"runtime"
 	"runtime/debug"
+	"syscall"
 	"web"
 )
 
+const (
+	DEFAULT_CONFIG_FILE = "/etc/metricsearch.conf"
+)
+
+var (
+	logfileName string
+	logfile     *os.File
+	log         *logging.Logger = logging.MustGetLogger("metricsearch")
+)
+
+func reopenLog() {
+	var err error
+	if logfile != nil {
+		logfile.Close()
+	}
+	logfile, err = os.OpenFile(logfileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.FileMode(0644))
+	if err != nil {
+		return
+	}
+	backend := logging.NewLogBackend(logfile, "", 0)
+	logging.SetBackend(backend)
+}
+
+func hupCatcher() {
+	c := make(chan os.Signal)
+	signal.Notify(c, syscall.SIGHUP)
+	for _ = range c {
+		log.Debug("HUP signal catched, reopening logfile %s", logfileName)
+		reopenLog()
+	}
+}
+
 func main() {
 	var format string
-	log := logging.MustGetLogger("metricsearch")
-
 	var confFile, reindexFile string
 	var stdinImport bool
-	flag.StringVar(&confFile, "c", "/etc/metricsearch.conf", "metricsearch config filename")
+	flag.StringVar(&confFile, "c", DEFAULT_CONFIG_FILE, "metricsearch config filename")
 	flag.StringVar(&reindexFile, "reindex", "", "reindex from plain text metrics file")
 	flag.BoolVar(&stdinImport, "stdin", false, "reindex from stdin")
 	flag.Parse()
@@ -39,14 +71,8 @@ func main() {
 	case "":
 		format = "%{color}%{level} %{color:reset}%{message}"
 	default:
-		f, err := os.OpenFile(conf.Log, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.FileMode(0644))
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}
-		backend := logging.NewLogBackend(f, "", 0)
-		logging.SetBackend(backend)
-		defer f.Close()
+		logfileName = conf.Log
+		go hupCatcher()
 		format = "[%{time:2006-01-02 15:04:05}] %{level} %{message}"
 	}
 	logging.SetFormatter(logging.MustStringFormatter(format))
