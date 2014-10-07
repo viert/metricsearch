@@ -1,3 +1,10 @@
+metricsearch (0.2-6) precise; urgency=low
+
+  * logging level fixed?
+  * add handler timings 
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Tue, 07 Oct 2014 17:36:23 +0400
+
 metricsearch (0.2-5) precise; urgency=low
 
   * concurrent index writers 
