@@ -9,14 +9,17 @@ import (
 	"os"
 	"runtime/debug"
 	"strings"
+	"sync"
 	"time"
 )
 
 type MSTree struct {
-	indexDir    string
-	Root        *node
-	syncChannel chan string
-	fullReindex bool
+	indexDir           string
+	Root               *node
+	syncBufferSize     int
+	indexWriteChannels map[string]chan string
+	indexWriterLock    *sync.Mutex
+	fullReindex        bool
 }
 type eventChan chan error
 type TreeCreateError struct {
@@ -50,49 +53,34 @@ func NewTree(indexDir string, syncBufferSize int) (*MSTree, error) {
 			return nil, &TreeCreateError{fmt.Sprintf("'%s' exists and is not a directory", indexDir)}
 		}
 	}
-	syncChannel := make(chan string, syncBufferSize)
+	indexWriteChannels := make(map[string]chan string)
 	root := newNode()
-	tree := &MSTree{indexDir, root, syncChannel, false}
+	tree := &MSTree{indexDir, root, syncBufferSize, indexWriteChannels, new(sync.Mutex), false}
 	log.Debug("Tree created. indexDir: %s syncBufferSize: %d", indexDir, syncBufferSize)
-	go syncWorker(tree.indexDir, tree.syncChannel)
 	log.Debug("Background index sync started")
 	return tree, nil
 }
 
-func syncWorker(indexDir string, dataChannel chan string) {
+func separateSyncWorker(indexDir string, indexToken string, dataChannel chan string) {
 	var err error
-	fdCache := make(map[string]*os.File)
-	defer func(fdCache map[string]*os.File) {
-		for _, f := range fdCache {
-			f.Close()
-		}
-	}(fdCache)
-	for line := range dataChannel {
-		tokens := strings.Split(line, ".")
-		first := tokens[0]
-		idxFilename := fmt.Sprintf("%s/%s.idx", indexDir, first)
+	idxFilename := fmt.Sprintf("%s/%s.idx", indexDir, indexToken)
 
-		f, ok := fdCache[idxFilename]
-		if !ok {
-			f, err = os.OpenFile(idxFilename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.FileMode(0644))
+	f, err := os.OpenFile(idxFilename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.FileMode(0644))
+	if err != nil {
+		log.Critical("Error opening indexFile %s for writing: %s", idxFilename, err.Error())
+		panic(err)
+	}
+	defer f.Close()
+	for line := range dataChannel {
+		if line == "" {
+			continue
+		} else {
+			_, err := io.WriteString(f, line+"\n")
 			if err != nil {
-				log.Error("Index update error: " + err.Error())
+				log.Error("Index update error: %s", err.Error())
 				continue
-			}
-			fdCache[idxFilename] = f
-		}
-		if len(tokens) > 1 {
-			tail := strings.Join(tokens[1:], ".")
-			_, err := io.WriteString(f, tail+"\n")
-			if err != nil {
-				log.Error("Index update error: " + err.Error())
-				if f != nil {
-					log.Debug(fmt.Sprintf("Closing file '%s'", f.Name()))
-					f.Close()
-				}
-				delete(fdCache, idxFilename)
 			} else {
-				log.Debug("Metric '%s' synced to disk", line)
+				log.Debug("Metric '%s.%s' synced to disk", indexToken, line)
 			}
 		}
 	}
@@ -132,16 +120,36 @@ func loadWorker(idxFile string, idxNode *node, ev eventChan) {
 	ev <- nil
 }
 
-// TODO: channeled index writer
-func (t *MSTree) Add(metric string) {
+func (t *MSTree) AddNoSync(metric string) bool {
 	if metric == "" {
-		return
+		return false
 	}
 	tokens := strings.Split(metric, ".")
 	inserted := false
 	t.Root.insert(tokens, &inserted)
-	if !t.fullReindex && inserted && len(tokens) > 1 {
-		t.syncChannel <- metric
+	return inserted
+}
+
+func (t *MSTree) Add(metric string) {
+	inserted := t.AddNoSync(metric)
+	if inserted {
+		delimPos := strings.Index(metric, ".")
+		if delimPos <= 0 || delimPos == len(metric)-1 {
+			return
+		}
+		indexToken := metric[:delimPos]
+		metricTail := metric[delimPos+1:]
+		ch, ok := t.indexWriteChannels[indexToken]
+		if !ok {
+			tm := time.Now()
+			t.indexWriterLock.Lock()
+			ch = make(chan string, t.syncBufferSize)
+			t.indexWriteChannels[indexToken] = ch
+			t.indexWriterLock.Unlock()
+			go separateSyncWorker(t.indexDir, indexToken, ch)
+			log.Notice("Writer created for %s.idx in %s", indexToken, time.Now().Sub(tm).String())
+		}
+		ch <- metricTail
 	}
 }
 
@@ -162,7 +170,7 @@ func (t *MSTree) LoadTxt(filename string, limit int) error {
 	count := 0
 	for scanner.Scan() {
 		line := strings.TrimRight(scanner.Text(), "\n")
-		t.Add(line)
+		t.AddNoSync(line)
 		count++
 		if count%1000000 == 0 {
 			log.Info("Reindexed %d items", count)
