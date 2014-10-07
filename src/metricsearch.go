@@ -57,7 +57,6 @@ func main() {
 	flag.Parse()
 
 	conf := config.Load(confFile)
-	logging.SetLevel(conf.LogLevel, "metricsearch")
 
 	switch conf.Log {
 	case "syslog":
@@ -77,6 +76,7 @@ func main() {
 		format = "[%{time:2006-01-02 15:04:05}] %{level} %{message}"
 	}
 	logging.SetFormatter(logging.MustStringFormatter(format))
+	logging.SetLevel(conf.LogLevel, "metricsearch")
 
 	tree, err := mstree.NewTree(conf.IndexDirectory, conf.SyncBufferSize)
 	if err != nil {
