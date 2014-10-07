@@ -1,8 +1,8 @@
-metricsearch (0.2-6ubuntu1) precise; urgency=low
+metricsearch (0.2-7) precise; urgency=low
 
   * no_sync
 
- -- Pavel Vorobyov <viert@yandex-team.ru>  Tue, 07 Oct 2014 19:27:48 +0400
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Tue, 07 Oct 2014 19:28:34 +0400
 
 metricsearch (0.2-6) precise; urgency=low
 
