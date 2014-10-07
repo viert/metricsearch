@@ -4,20 +4,23 @@ import (
 	"io"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 type node struct {
 	Children map[string]*node
+	Lock     *sync.Mutex
 }
 
 func newNode() *node {
-	return &node{make(map[string]*node)}
+	return &node{make(map[string]*node), new(sync.Mutex)}
 }
 
 func (n *node) insert(tokens []string, inserted *bool) {
 	if len(tokens) == 0 {
 		return
 	}
+	n.Lock.Lock()
 	first, tail := tokens[0], tokens[1:]
 	child, ok := n.Children[first]
 	if !ok {
@@ -25,6 +28,7 @@ func (n *node) insert(tokens []string, inserted *bool) {
 		child = newNode()
 		n.Children[first] = child
 	}
+	n.Lock.Unlock()
 	child.insert(tail, inserted)
 }
 
