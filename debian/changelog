@@ -1,3 +1,9 @@
+metricsearch (0.2-5) precise; urgency=low
+
+  * concurrent index writers 
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Tue, 07 Oct 2014 13:58:27 +0400
+
 metricsearch (0.2-4) precise; urgency=low
 
   * mutex locking nodes on update 
