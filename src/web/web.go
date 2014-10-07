@@ -24,7 +24,7 @@ func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 	tm := time.Now()
 	data := s.tree.Search(query)
 	dur := time.Now().Sub(tm)
-	if dur > 1000000 {
+	if dur > time.Millisecond {
 		// slower than 1ms
 		log.Debug("Searching %s took %s\n", query, dur.String())
 	}
@@ -42,7 +42,12 @@ func (s *Server) addHandler(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "Specify 'name' parameter")
 		return
 	}
+	tm := time.Now()
 	s.tree.Add(name)
+	dur := time.Now().Sub(tm)
+	if dur > time.Millisecond*100 {
+		log.Debug("Indexing %s took %s\n", name, dur.String())
+	}
 	io.WriteString(w, "Ok")
 }
 
