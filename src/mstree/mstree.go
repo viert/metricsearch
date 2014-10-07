@@ -18,7 +18,7 @@ type MSTree struct {
 	Root               *node
 	syncBufferSize     int
 	indexWriteChannels map[string]chan string
-	indexWriterLock    *sync.Mutex
+	indexWriterMapLock *sync.Mutex
 	fullReindex        bool
 }
 type eventChan chan error
@@ -142,10 +142,10 @@ func (t *MSTree) Add(metric string) {
 		ch, ok := t.indexWriteChannels[indexToken]
 		if !ok {
 			tm := time.Now()
-			t.indexWriterLock.Lock()
 			ch = make(chan string, t.syncBufferSize)
+			t.indexWriterMapLock.Lock()
 			t.indexWriteChannels[indexToken] = ch
-			t.indexWriterLock.Unlock()
+			t.indexWriterMapLock.Unlock()
 			go separateSyncWorker(t.indexDir, indexToken, ch)
 			log.Notice("Writer created for %s.idx in %s", indexToken, time.Now().Sub(tm).String())
 		}
