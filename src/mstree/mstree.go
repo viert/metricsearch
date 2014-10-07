@@ -20,6 +20,7 @@ type MSTree struct {
 	indexWriteChannels map[string]chan string
 	indexWriterMapLock *sync.Mutex
 	fullReindex        bool
+	enableSync         bool
 }
 type eventChan chan error
 type TreeCreateError struct {
@@ -55,7 +56,8 @@ func NewTree(indexDir string, syncBufferSize int) (*MSTree, error) {
 	}
 	indexWriteChannels := make(map[string]chan string)
 	root := newNode()
-	tree := &MSTree{indexDir, root, syncBufferSize, indexWriteChannels, new(sync.Mutex), false}
+	enableSync := syncBufferSize > 0
+	tree := &MSTree{indexDir, root, syncBufferSize, indexWriteChannels, new(sync.Mutex), false, enableSync}
 	log.Debug("Tree created. indexDir: %s syncBufferSize: %d", indexDir, syncBufferSize)
 	log.Debug("Background index sync started")
 	return tree, nil
@@ -132,7 +134,7 @@ func (t *MSTree) AddNoSync(metric string) bool {
 
 func (t *MSTree) Add(metric string) {
 	inserted := t.AddNoSync(metric)
-	if inserted {
+	if t.enableSync && inserted {
 		delimPos := strings.Index(metric, ".")
 		if delimPos <= 0 || delimPos == len(metric)-1 {
 			return

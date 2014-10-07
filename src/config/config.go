@@ -94,5 +94,12 @@ func Load(filename string) *Config {
 			config.LogLevel = defaultConfig.LogLevel
 		}
 	}
+	dsSync, err := props.GetString("main.no_sync")
+	if err == nil {
+		dsSync = strings.ToLower(dsSync)
+		if dsSync == "true" {
+			config.SyncBufferSize = -1
+		}
+	}
 	return config
 }
