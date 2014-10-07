@@ -1,6 +1,9 @@
 package mstree
 
 import (
+	"bufio"
+	"fmt"
+	logging "github.com/op/go-logging"
 	"os"
 	"testing"
 )
@@ -30,10 +33,11 @@ var (
 	err  error
 )
 
-func prepareTestTree(t *testing.T) {
+func prepareTestTree(t testing.TB) {
 	if tree != nil {
 		return
 	}
+	dropTestTree()
 	tree, err = NewTree("/tmp/test_index", 1000)
 	if err != nil {
 		t.Error(err)
@@ -49,7 +53,8 @@ func prepareTestTree(t *testing.T) {
 }
 
 func dropTestTree() {
-	os.Remove("/tmp/test_index")
+	os.RemoveAll("/tmp/test_index")
+	tree = nil
 }
 
 func TestExactMatch(t *testing.T) {
@@ -158,6 +163,35 @@ func TestHellPattern(t *testing.T) {
 	for _, metric := range results {
 		if metric != Data1 && metric != Data2 {
 			t.Errorf("Unexpected metric %s", metric)
+		}
+	}
+}
+
+func BenchmarkTreeAdd(b *testing.B) {
+	dropTestTree()
+	prepareTestTree(b)
+	logging.SetLevel(logging.ERROR, "metricsearch")
+	f, err := os.Open("payload.txt")
+	if err != nil {
+		b.Error("Please provide metric list in payload.txt file in the current directory")
+		return
+	}
+	defer f.Close()
+
+	payload := make([]string, 0, 10000000)
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		payload = append(payload, sc.Text())
+	}
+
+	c := 0
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		tree.Add(payload[c])
+		c++
+		if c == len(payload) {
+			fmt.Println("Warning: Payload is too short")
+			c = 0
 		}
 	}
 }
