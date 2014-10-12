@@ -1,3 +1,9 @@
+metricsearch (0.2-8) precise; urgency=low
+
+  * dump handler
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Sun, 12 Oct 2014 21:59:23 +0400
+
 metricsearch (0.2-7) precise; urgency=low
 
   * no_sync
