@@ -97,7 +97,7 @@ func dumpWorker(idxFile string, idxNode *node, ev eventChan) {
 		return
 	}
 	defer f.Close()
-	idxNode.traverseDump("", f)
+	idxNode.TraverseDump("", f)
 	log.Debug("<%s> dumper finished", idxFile)
 	ev <- nil
 }

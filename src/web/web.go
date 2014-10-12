@@ -58,11 +58,17 @@ func (s *Server) stackHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(buf[:n])
 }
 
+func (s *Server) dumpHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	s.tree.Root.TraverseDump("", w)
+}
+
 func NewServer(tree *mstree.MSTree) *Server {
 	server := &Server{tree}
 	http.HandleFunc("/search", server.searchHandler)
 	http.HandleFunc("/add", server.addHandler)
 	http.HandleFunc("/debug/stack", server.stackHandler)
+	http.HandleFunc("/dump", server.dumpHandler)
 	return server
 }
 

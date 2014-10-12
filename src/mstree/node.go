@@ -32,7 +32,7 @@ func (n *node) insert(tokens []string, inserted *bool) {
 	child.insert(tail, inserted)
 }
 
-func (n *node) traverseDump(prefix string, writer io.Writer) {
+func (n *node) TraverseDump(prefix string, writer io.Writer) {
 	if len(n.Children) == 0 {
 		io.WriteString(writer, prefix+"\n")
 	} else {
@@ -43,7 +43,7 @@ func (n *node) traverseDump(prefix string, writer io.Writer) {
 			} else {
 				nPref = prefix + "." + k
 			}
-			node.traverseDump(nPref, writer)
+			node.TraverseDump(nPref, writer)
 		}
 	}
 }
