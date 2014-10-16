@@ -6,6 +6,7 @@ import (
 	logging "github.com/op/go-logging"
 	"os"
 	"testing"
+	"time"
 )
 
 const (
@@ -164,6 +165,30 @@ func TestHellPattern(t *testing.T) {
 		if metric != Data1 && metric != Data2 {
 			t.Errorf("Unexpected metric %s", metric)
 		}
+	}
+}
+
+func TestMetricCount(t *testing.T) {
+	prepareTestTree(t)
+	if tree.totalMetrics != 4 {
+		t.Errorf("Invalid metrics count after prepare: 4 expected, but %d got", tree.totalMetrics)
+	}
+	retries := 10
+	for retries > 0 && !tree.Synced() {
+		retries--
+		time.Sleep(10 * time.Millisecond)
+	}
+	if !tree.Synced() {
+		t.Errorf("Error syncing tree, not synced after 10 retries 10ms each")
+	}
+
+	tree, err = NewTree("/tmp/test_index", 1000)
+	if err != nil {
+		t.Error(err)
+	}
+	tree.LoadIndex()
+	if tree.totalMetrics != 4 {
+		t.Errorf("Invalid metrics count after loading index: 4 expected, but %d got", tree.totalMetrics)
 	}
 }
 

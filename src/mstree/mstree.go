@@ -10,17 +10,19 @@ import (
 	"runtime/debug"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 type MSTree struct {
-	indexDir           string
-	Root               *node
-	syncBufferSize     int
-	indexWriteChannels map[string]chan string
-	indexWriterMapLock *sync.Mutex
-	fullReindex        bool
-	enableSync         bool
+	indexDir               string
+	Root                   *node
+	syncBufferSize         int
+	indexWriteChannels     map[string]chan string
+	indexWriteQueueSizeCtr map[string]*int64
+	indexWriterMapLock     *sync.Mutex
+	TotalMetrics           int64
+	enableSync             bool
 }
 type eventChan chan error
 type TreeCreateError struct {
@@ -55,15 +57,16 @@ func NewTree(indexDir string, syncBufferSize int) (*MSTree, error) {
 		}
 	}
 	indexWriteChannels := make(map[string]chan string)
+	indexWriteQSCtr := make(map[string]*int64)
 	root := newNode()
 	enableSync := syncBufferSize > 0
-	tree := &MSTree{indexDir, root, syncBufferSize, indexWriteChannels, new(sync.Mutex), false, enableSync}
+	tree := &MSTree{indexDir, root, syncBufferSize, indexWriteChannels, indexWriteQSCtr, new(sync.Mutex), 0, enableSync}
 	log.Debug("Tree created. indexDir: %s syncBufferSize: %d", indexDir, syncBufferSize)
 	log.Debug("Background index sync started")
 	return tree, nil
 }
 
-func separateSyncWorker(indexDir string, indexToken string, dataChannel chan string) {
+func separateSyncWorker(indexDir string, indexToken string, dataChannel chan string, qsCounter *int64) {
 	var err error
 	idxFilename := fmt.Sprintf("%s/%s.idx", indexDir, indexToken)
 
@@ -74,6 +77,7 @@ func separateSyncWorker(indexDir string, indexToken string, dataChannel chan str
 	}
 	defer f.Close()
 	for line := range dataChannel {
+		atomic.AddInt64(qsCounter, -1)
 		if line == "" {
 			continue
 		} else {
@@ -102,7 +106,7 @@ func dumpWorker(idxFile string, idxNode *node, ev eventChan) {
 	ev <- nil
 }
 
-func loadWorker(idxFile string, idxNode *node, ev eventChan) {
+func loadWorker(idxFile string, idxNode *node, ev eventChan, metricCounter *int64) {
 	log.Debug("<%s> loader started", idxFile)
 	f, err := os.Open(idxFile)
 	if err != nil {
@@ -117,9 +121,23 @@ func loadWorker(idxFile string, idxNode *node, ev eventChan) {
 		line := strings.TrimRight(scanner.Text(), "\n")
 		tokens := strings.Split(line, ".")
 		idxNode.insert(tokens, &inserted)
+		if inserted {
+			atomic.AddInt64(metricCounter, 1)
+		}
 	}
 	log.Debug("<%s> loader finished", idxFile)
 	ev <- nil
+}
+
+func (t *MSTree) SyncQueueSize() (int64, int64) {
+	var qsize int64 = 0
+	var count = 0
+	for _, cs := range t.indexWriteQueueSizeCtr {
+		qsize += *cs
+		count++
+	}
+	totalBufSize := int64(count * t.syncBufferSize)
+	return qsize, totalBufSize
 }
 
 func (t *MSTree) AddNoSync(metric string) bool {
@@ -129,7 +147,15 @@ func (t *MSTree) AddNoSync(metric string) bool {
 	tokens := strings.Split(metric, ".")
 	inserted := false
 	t.Root.insert(tokens, &inserted)
+	if inserted {
+		atomic.AddInt64(&t.TotalMetrics, 1)
+	}
 	return inserted
+}
+
+func (t *MSTree) Synced() bool {
+	qsize, _ := t.SyncQueueSize()
+	return qsize == 0
 }
 
 func (t *MSTree) Add(metric string) {
@@ -147,16 +173,17 @@ func (t *MSTree) Add(metric string) {
 			ch = make(chan string, t.syncBufferSize)
 			t.indexWriterMapLock.Lock()
 			t.indexWriteChannels[indexToken] = ch
+			t.indexWriteQueueSizeCtr[indexToken] = new(int64)
 			t.indexWriterMapLock.Unlock()
-			go separateSyncWorker(t.indexDir, indexToken, ch)
+			go separateSyncWorker(t.indexDir, indexToken, ch, t.indexWriteQueueSizeCtr[indexToken])
 			log.Notice("Writer created for %s.idx in %s", indexToken, time.Now().Sub(tm).String())
 		}
 		ch <- metricTail
+		atomic.AddInt64(t.indexWriteQueueSizeCtr[indexToken], 1)
 	}
 }
 
 func (t *MSTree) LoadTxt(filename string, limit int) error {
-	t.fullReindex = true
 	f, err := os.Open(filename)
 	if err != nil {
 		return err
@@ -186,7 +213,6 @@ func (t *MSTree) LoadTxt(filename string, limit int) error {
 	if err != nil {
 		return err
 	}
-	t.fullReindex = false
 	return nil
 }
 
@@ -263,7 +289,7 @@ func (t *MSTree) LoadIndex() error {
 			fName = fmt.Sprintf("%s/%s", t.indexDir, fName)
 			idxNode := newNode()
 			t.Root.Children[pref] = idxNode
-			go loadWorker(fName, idxNode, ev)
+			go loadWorker(fName, idxNode, ev, &t.TotalMetrics)
 			procCount++
 		}
 		tm := time.Now()

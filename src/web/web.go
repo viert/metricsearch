@@ -1,11 +1,13 @@
 package web
 
 import (
+	"fmt"
 	logging "github.com/op/go-logging"
 	"io"
 	"mstree"
 	"net/http"
 	"runtime"
+	"sync/atomic"
 	"time"
 )
 
@@ -13,11 +15,27 @@ type Server struct {
 	tree *mstree.MSTree
 }
 
+type handlerCounters struct {
+	add    uint64
+	search uint64
+	dump   uint64
+}
+
+type rpsCounters struct {
+	add    float64
+	search float64
+	dump   float64
+}
+
 var (
-	log *logging.Logger = logging.MustGetLogger("metricsearch")
+	log           *logging.Logger = logging.MustGetLogger("metricsearch")
+	totalRequests handlerCounters
+	lastRequests  handlerCounters
+	rps           rpsCounters
 )
 
 func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
+	atomic.AddUint64(&totalRequests.search, 1)
 	w.Header().Set("Content-Type", "text/plain")
 	r.ParseForm()
 	query := r.Form.Get("query")
@@ -34,6 +52,7 @@ func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) addHandler(w http.ResponseWriter, r *http.Request) {
+	atomic.AddUint64(&totalRequests.add, 1)
 	w.Header().Set("Content-Type", "text/plain")
 	r.ParseForm()
 	name := r.Form.Get("name")
@@ -59,8 +78,36 @@ func (s *Server) stackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) dumpHandler(w http.ResponseWriter, r *http.Request) {
+	atomic.AddUint64(&totalRequests.dump, 1)
 	w.Header().Set("Content-Type", "text/plain")
 	s.tree.Root.TraverseDump("", w)
+}
+
+func (s *Server) statsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	io.WriteString(w, "Total requests (online):\n=============================\n")
+	io.WriteString(w, fmt.Sprintf("  add:    %d\n", totalRequests.add))
+	io.WriteString(w, fmt.Sprintf("  search: %d\n", totalRequests.search))
+	io.WriteString(w, fmt.Sprintf("  dump:   %d\n", totalRequests.dump))
+	io.WriteString(w, "\n")
+	io.WriteString(w, "RPS (refreshes every minute):\n=============================\n")
+	io.WriteString(w, fmt.Sprintf("  add:    %.3f\n", rps.add))
+	io.WriteString(w, fmt.Sprintf("  search: %.3f\n", rps.search))
+	io.WriteString(w, fmt.Sprintf("  dump:   %.3f\n", rps.dump))
+	io.WriteString(w, "\n")
+	sqs, _ := s.tree.SyncQueueSize()
+	io.WriteString(w, fmt.Sprintf("Total Metrics: %d\n", s.tree.TotalMetrics))
+	io.WriteString(w, fmt.Sprintf("Sync Queue Size: %d\n", sqs))
+}
+
+func recalcRPS() {
+	ticker := time.Tick(time.Minute)
+	for _ = range ticker {
+		rps.add = float64(totalRequests.add-lastRequests.add) / 60
+		rps.dump = float64(totalRequests.dump-lastRequests.dump) / 60
+		rps.search = float64(totalRequests.search-lastRequests.search) / 60
+		lastRequests = totalRequests
+	}
 }
 
 func NewServer(tree *mstree.MSTree) *Server {
@@ -69,6 +116,7 @@ func NewServer(tree *mstree.MSTree) *Server {
 	http.HandleFunc("/add", server.addHandler)
 	http.HandleFunc("/debug/stack", server.stackHandler)
 	http.HandleFunc("/dump", server.dumpHandler)
+	http.HandleFunc("/stats", server.statsHandler)
 	return server
 }
 
