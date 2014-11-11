@@ -26,7 +26,9 @@ const (
 	TestQuestionMiddle  = "abook.qa-test1?_yandex_net.some.metric.total"
 	TestQuestionFailure = "abook.qa-test?_yandex_net.some.metric.total"
 
-	TestHell = "abook.q*test?e*.some.*.total"
+	TestHell    = "abook.q*test?e*.some.*.total"
+	TestBraces  = "abook.qa-test[12][ed]*.some.metric.total"
+	TestBraces2 = "abook.qa-test[12]e*.some.metric.total"
 )
 
 var (
@@ -155,6 +157,22 @@ func TestQuestionNullMatch(t *testing.T) {
 	}
 }
 
+func TestBracesPattern(t *testing.T) {
+	prepareTestTree(t)
+	results := tree.Search(TestBraces)
+	if len(results) != 4 {
+		t.Errorf("Incorrect results length: %d", len(results))
+	}
+}
+
+func TestBracesPattern2(t *testing.T) {
+	prepareTestTree(t)
+	results := tree.Search(TestBraces2)
+	if len(results) != 2 {
+		t.Errorf("Incorrect results length: %d", len(results))
+	}
+}
+
 func TestHellPattern(t *testing.T) {
 	prepareTestTree(t)
 	results := tree.Search(TestHell)
@@ -170,8 +188,8 @@ func TestHellPattern(t *testing.T) {
 
 func TestMetricCount(t *testing.T) {
 	prepareTestTree(t)
-	if tree.totalMetrics != 4 {
-		t.Errorf("Invalid metrics count after prepare: 4 expected, but %d got", tree.totalMetrics)
+	if tree.TotalMetrics != 4 {
+		t.Errorf("Invalid metrics count after prepare: 4 expected, but %d got", tree.TotalMetrics)
 	}
 	retries := 10
 	for retries > 0 && !tree.Synced() {
@@ -187,8 +205,8 @@ func TestMetricCount(t *testing.T) {
 		t.Error(err)
 	}
 	tree.LoadIndex()
-	if tree.totalMetrics != 4 {
-		t.Errorf("Invalid metrics count after loading index: 4 expected, but %d got", tree.totalMetrics)
+	if tree.TotalMetrics != 4 {
+		t.Errorf("Invalid metrics count after loading index: 4 expected, but %d got", tree.TotalMetrics)
 	}
 }
 
