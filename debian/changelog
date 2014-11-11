@@ -1,3 +1,10 @@
+metricsearch (0.2-10) precise; urgency=low
+
+  * braces match implemented
+  * prevent panic on regexp searches
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Tue, 11 Nov 2014 20:06:33 +0400
+
 metricsearch (0.2-9) precise; urgency=low
 
   * stats handler
