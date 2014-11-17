@@ -1,3 +1,10 @@
+metricsearch (0.2-11) precise; urgency=low
+
+  * rps recount fix
+  * self monitoring implemented
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Mon, 17 Nov 2014 13:39:46 +0400
+
 metricsearch (0.2-10) precise; urgency=low
 
   * braces match implemented
