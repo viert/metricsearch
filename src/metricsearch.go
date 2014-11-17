@@ -119,7 +119,7 @@ func main() {
 		}
 	} else {
 		tree.LoadIndex()
-		server := web.NewServer(tree)
+		server := web.NewServer(tree, conf.SelfMonitor)
 		addr := fmt.Sprintf("%s:%d", conf.Host, conf.Port)
 		server.Start(addr)
 	}
