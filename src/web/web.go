@@ -7,7 +7,9 @@ import (
 	"mstree"
 	"net"
 	"net/http"
+	"os"
 	"runtime"
+	"strings"
 	"sync/atomic"
 	"time"
 )
@@ -38,6 +40,7 @@ var (
 	totalRequests handlerCounters
 	lastRequests  handlerCounters
 	rps           rpsCounters
+	selfHostname  string
 )
 
 func (s *Server) sendMetrics() {
@@ -48,14 +51,14 @@ func (s *Server) sendMetrics() {
 	defer conn.Close()
 	ts := time.Now().Unix()
 	sqs, _ := s.tree.SyncQueueSize()
-	fmt.Fprintf(conn, "metricsearch.rps.add %.4f %d\n", rps.add, ts)
-	fmt.Fprintf(conn, "metricsearch.rps.search %.4f %d\n", rps.search, ts)
-	fmt.Fprintf(conn, "metricsearch.rps.dump %.4f %d\n", rps.dump, ts)
-	fmt.Fprintf(conn, "metricsearch.reqs.add %.2f %d\n", float32(totalRequests.add), ts)
-	fmt.Fprintf(conn, "metricsearch.reqs.search %.2f %d\n", float32(totalRequests.search), ts)
-	fmt.Fprintf(conn, "metricsearch.reqs.dump %.2f %d\n", float32(totalRequests.dump), ts)
-	fmt.Fprintf(conn, "metricsearch.metrics %.2f %d\n", float64(s.tree.TotalMetrics), ts)
-	fmt.Fprintf(conn, "metricsearch.sync_queue %.2f %d\n", float64(sqs), ts)
+	fmt.Fprintf(conn, "%s.metricsearch.rps.add %.4f %d\n", selfHostname, rps.add, ts)
+	fmt.Fprintf(conn, "%s.metricsearch.rps.search %.4f %d\n", selfHostname, rps.search, ts)
+	fmt.Fprintf(conn, "%s.metricsearch.rps.dump %.4f %d\n", selfHostname, rps.dump, ts)
+	fmt.Fprintf(conn, "%s.metricsearch.reqs.add %.2f %d\n", selfHostname, float32(totalRequests.add), ts)
+	fmt.Fprintf(conn, "%s.metricsearch.reqs.search %.2f %d\n", selfHostname, float32(totalRequests.search), ts)
+	fmt.Fprintf(conn, "%s.metricsearch.reqs.dump %.2f %d\n", selfHostname, float32(totalRequests.dump), ts)
+	fmt.Fprintf(conn, "%s.metricsearch.metrics %.2f %d\n", selfHostname, float64(s.tree.TotalMetrics), ts)
+	fmt.Fprintf(conn, "%s.metricsearch.sync_queue %.2f %d\n", selfHostname, float64(sqs), ts)
 }
 
 func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
@@ -138,6 +141,11 @@ func (s *Server) recalcRPS() {
 }
 
 func NewServer(tree *mstree.MSTree, selfMonitor bool) *Server {
+	host, err := os.Hostname()
+	if err != nil {
+		host = "localhost"
+	}
+	selfHostname = strings.Replace(host, ".", "_", -1)
 	server := &Server{tree, selfMonitor}
 	http.HandleFunc("/search", server.searchHandler)
 	http.HandleFunc("/add", server.addHandler)
