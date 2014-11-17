@@ -5,6 +5,7 @@ import (
 	logging "github.com/op/go-logging"
 	"io"
 	"mstree"
+	"net"
 	"net/http"
 	"runtime"
 	"sync/atomic"
@@ -12,7 +13,8 @@ import (
 )
 
 type Server struct {
-	tree *mstree.MSTree
+	tree        *mstree.MSTree
+	selfMonitor bool
 }
 
 type handlerCounters struct {
@@ -27,12 +29,34 @@ type rpsCounters struct {
 	dump   float64
 }
 
+const (
+	monitorHost = "127.0.0.1:42000"
+)
+
 var (
 	log           *logging.Logger = logging.MustGetLogger("metricsearch")
 	totalRequests handlerCounters
 	lastRequests  handlerCounters
 	rps           rpsCounters
 )
+
+func (s *Server) sendMetrics() {
+	conn, err := net.Dial("tcp", monitorHost)
+	if err != nil {
+		return
+	}
+	defer conn.Close()
+	ts := time.Now().Unix()
+	sqs, _ := s.tree.SyncQueueSize()
+	fmt.Fprintf(conn, "metricsearch.rps.add %.4f %d\n", rps.add, ts)
+	fmt.Fprintf(conn, "metricsearch.rps.search %.4f %d\n", rps.search, ts)
+	fmt.Fprintf(conn, "metricsearch.rps.dump %.4f %d\n", rps.dump, ts)
+	fmt.Fprintf(conn, "metricsearch.reqs.add %.2f %d\n", float32(totalRequests.add), ts)
+	fmt.Fprintf(conn, "metricsearch.reqs.search %.2f %d\n", float32(totalRequests.search), ts)
+	fmt.Fprintf(conn, "metricsearch.reqs.dump %.2f %d\n", float32(totalRequests.dump), ts)
+	fmt.Fprintf(conn, "metricsearch.metrics %.2f %d\n", float64(s.tree.TotalMetrics), ts)
+	fmt.Fprintf(conn, "metricsearch.sync_queue %.2f %d\n", float64(sqs), ts)
+}
 
 func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 	atomic.AddUint64(&totalRequests.search, 1)
@@ -100,18 +124,21 @@ func (s *Server) statsHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, fmt.Sprintf("Sync Queue Size: %d\n", sqs))
 }
 
-func recalcRPS() {
+func (s *Server) recalcRPS() {
 	ticker := time.Tick(time.Minute)
 	for _ = range ticker {
 		rps.add = float64(totalRequests.add-lastRequests.add) / 60
 		rps.dump = float64(totalRequests.dump-lastRequests.dump) / 60
 		rps.search = float64(totalRequests.search-lastRequests.search) / 60
 		lastRequests = totalRequests
+		if s.selfMonitor {
+			s.sendMetrics()
+		}
 	}
 }
 
-func NewServer(tree *mstree.MSTree) *Server {
-	server := &Server{tree}
+func NewServer(tree *mstree.MSTree, selfMonitor bool) *Server {
+	server := &Server{tree, selfMonitor}
 	http.HandleFunc("/search", server.searchHandler)
 	http.HandleFunc("/add", server.addHandler)
 	http.HandleFunc("/debug/stack", server.stackHandler)
@@ -121,6 +148,8 @@ func NewServer(tree *mstree.MSTree) *Server {
 }
 
 func (s *Server) Start(listenAddr string) {
+	log.Notice("Starting background stats job")
+	go s.recalcRPS()
 	log.Notice("Starting HTTP")
 	err := http.ListenAndServe(listenAddr, nil)
 	if err != nil {

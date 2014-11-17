@@ -16,6 +16,7 @@ type Config struct {
 	MaxThreads     int
 	LogLevel       logging.Level
 	Log            string
+	SelfMonitor    bool
 }
 
 var (
@@ -99,6 +100,21 @@ func Load(filename string) *Config {
 		dsSync = strings.ToLower(dsSync)
 		if dsSync == "true" {
 			config.SyncBufferSize = -1
+		}
+	}
+	selfMonitor, err := props.GetString("main.self_monitor")
+	if err == nil {
+		switch strings.ToLower(selfMonitor) {
+		case "on":
+			fallthrough
+		case "1":
+			fallthrough
+		case "yes":
+			fallthrough
+		case "true":
+			config.SelfMonitor = true
+		default:
+			config.SelfMonitor = false
 		}
 	}
 	return config
