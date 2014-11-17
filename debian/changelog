@@ -1,3 +1,9 @@
+metricsearch (0.2-12) precise; urgency=low
+
+  * hostname in self monitoring
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Mon, 17 Nov 2014 14:12:47 +0400
+
 metricsearch (0.2-11) precise; urgency=low
 
   * rps recount fix
