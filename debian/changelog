@@ -1,3 +1,9 @@
+metricsearch (0.2-13) precise; urgency=low
+
+  * Avoid false-positive regexp matches 
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Tue, 02 Dec 2014 12:57:26 +0400
+
 metricsearch (0.2-12) precise; urgency=low
 
   * hostname in self monitoring
