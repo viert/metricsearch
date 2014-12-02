@@ -74,7 +74,8 @@ func (n *node) search(pattern string) map[string]*node {
 
 			if wcIndex != lwcIndex || (wcIndex != 0 && wcIndex != len(pattern)-1) {
 				// more than one wildcard or one wildcard in the middle
-				re, err := regexp.Compile(strings.Replace(pattern, "*", ".*", -1))
+				rePattern := "^" + strings.Replace(pattern, "*", ".*", -1) + "$"
+				re, err := regexp.Compile(rePattern)
 				if err != nil {
 					return results
 				}
@@ -108,7 +109,8 @@ func (n *node) search(pattern string) map[string]*node {
 			lqIndex := strings.LastIndex(pattern, "?")
 			if qIndex != lqIndex || (qIndex != 0 && qIndex != len(pattern)-1) {
 				// more than one ? or one ? in the middle
-				re, err := regexp.Compile(strings.Replace(pattern, "?", ".?", -1))
+				rePattern := "^" + strings.Replace(pattern, "?", ".?", -1) + "$"
+				re, err := regexp.Compile(rePattern)
 				if err != nil {
 					return results
 				}
@@ -140,7 +142,7 @@ func (n *node) search(pattern string) map[string]*node {
 
 		} else {
 			// * and ? presents
-			rePattern := strings.Replace(strings.Replace(pattern, "*", ".*", -1), "?", ".?", -1)
+			rePattern := "^" + strings.Replace(strings.Replace(pattern, "*", ".*", -1), "?", ".?", -1) + "$"
 			re, err := regexp.Compile(rePattern)
 			if err != nil {
 				return results
@@ -152,8 +154,11 @@ func (n *node) search(pattern string) map[string]*node {
 			}
 		}
 	} else {
-		rePattern := strings.Replace(strings.Replace(pattern, "*", ".*", -1), "?", ".?", -1)
-		re := regexp.MustCompile(rePattern)
+		rePattern := "^" + strings.Replace(strings.Replace(pattern, "*", ".*", -1), "?", ".?", -1) + "$"
+		re, err := regexp.Compile(rePattern)
+		if err != nil {
+			return results
+		}
 		for k, node := range n.Children {
 			if re.MatchString(k) {
 				results[k] = node
