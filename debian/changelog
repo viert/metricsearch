@@ -1,3 +1,9 @@
+metricsearch (0.2-14) precise; urgency=low
+
+  * Token length check added
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Thu, 22 Jan 2015 16:33:27 +0400
+
 metricsearch (0.2-13) precise; urgency=low
 
   * Avoid false-positive regexp matches 
