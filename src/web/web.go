@@ -36,11 +36,11 @@ const (
 )
 
 var (
-	log           *logging.Logger = logging.MustGetLogger("metricsearch")
-	totalRequests handlerCounters
-	lastRequests  handlerCounters
-	rps           rpsCounters
-	selfHostname  string
+	log              *logging.Logger = logging.MustGetLogger("metricsearch")
+	totalRequests    handlerCounters
+	lastRequests     handlerCounters
+	rps              rpsCounters
+	monitoringPrefix string
 )
 
 func (s *Server) sendMetrics() {
@@ -51,14 +51,14 @@ func (s *Server) sendMetrics() {
 	defer conn.Close()
 	ts := time.Now().Unix()
 	sqs, _ := s.tree.SyncQueueSize()
-	fmt.Fprintf(conn, "%s.metricsearch.rps.add %.4f %d\n", selfHostname, rps.add, ts)
-	fmt.Fprintf(conn, "%s.metricsearch.rps.search %.4f %d\n", selfHostname, rps.search, ts)
-	fmt.Fprintf(conn, "%s.metricsearch.rps.dump %.4f %d\n", selfHostname, rps.dump, ts)
-	fmt.Fprintf(conn, "%s.metricsearch.reqs.add %.2f %d\n", selfHostname, float32(totalRequests.add), ts)
-	fmt.Fprintf(conn, "%s.metricsearch.reqs.search %.2f %d\n", selfHostname, float32(totalRequests.search), ts)
-	fmt.Fprintf(conn, "%s.metricsearch.reqs.dump %.2f %d\n", selfHostname, float32(totalRequests.dump), ts)
-	fmt.Fprintf(conn, "%s.metricsearch.metrics %.2f %d\n", selfHostname, float64(s.tree.TotalMetrics), ts)
-	fmt.Fprintf(conn, "%s.metricsearch.sync_queue %.2f %d\n", selfHostname, float64(sqs), ts)
+	fmt.Fprintf(conn, "%s.metricsearch.rps.add %.4f %d\n", monitoringPrefix, rps.add, ts)
+	fmt.Fprintf(conn, "%s.metricsearch.rps.search %.4f %d\n", monitoringPrefix, rps.search, ts)
+	fmt.Fprintf(conn, "%s.metricsearch.rps.dump %.4f %d\n", monitoringPrefix, rps.dump, ts)
+	fmt.Fprintf(conn, "%s.metricsearch.reqs.add %.2f %d\n", monitoringPrefix, float32(totalRequests.add), ts)
+	fmt.Fprintf(conn, "%s.metricsearch.reqs.search %.2f %d\n", monitoringPrefix, float32(totalRequests.search), ts)
+	fmt.Fprintf(conn, "%s.metricsearch.reqs.dump %.2f %d\n", monitoringPrefix, float32(totalRequests.dump), ts)
+	fmt.Fprintf(conn, "%s.metricsearch.metrics %.2f %d\n", monitoringPrefix, float64(s.tree.TotalMetrics), ts)
+	fmt.Fprintf(conn, "%s.metricsearch.sync_queue %.2f %d\n", monitoringPrefix, float64(sqs), ts)
 }
 
 func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
@@ -140,12 +140,17 @@ func (s *Server) recalcRPS() {
 	}
 }
 
-func NewServer(tree *mstree.MSTree, selfMonitor bool) *Server {
+func NewServer(tree *mstree.MSTree, selfMonitor bool, selfMonitorPrefix string) *Server {
 	host, err := os.Hostname()
 	if err != nil {
 		host = "localhost"
 	}
-	selfHostname = strings.Replace(host, ".", "_", -1)
+	selfHostname := strings.Replace(host, ".", "_", -1)
+	if selfMonitorPrefix != "" {
+		monitoringPrefix = fmt.Sprintf("%s.%s", selfMonitorPrefix, selfHostname)
+	} else {
+		monitoringPrefix = selfHostname
+	}
 	server := &Server{tree, selfMonitor}
 	http.HandleFunc("/search", server.searchHandler)
 	http.HandleFunc("/add", server.addHandler)

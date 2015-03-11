@@ -7,16 +7,17 @@ import (
 )
 
 type Config struct {
-	Host           string
-	Port           int
-	IndexDirectory string
-	SyncBufferSize int
-	GCPercent      int
-	MaxCores       int
-	MaxThreads     int
-	LogLevel       logging.Level
-	Log            string
-	SelfMonitor    bool
+	Host              string
+	Port              int
+	IndexDirectory    string
+	SyncBufferSize    int
+	GCPercent         int
+	MaxCores          int
+	MaxThreads        int
+	LogLevel          logging.Level
+	Log               string
+	SelfMonitor       bool
+	SelfMonitorPrefix string
 }
 
 var (
@@ -116,6 +117,15 @@ func Load(filename string) *Config {
 		default:
 			config.SelfMonitor = false
 		}
+	}
+	selfMonitorPrefix, err := props.GetString("main.self_monitor_prefix")
+	if err != nil {
+		config.SelfMonitorPrefix = ""
+	} else {
+		if strings.HasSuffix(selfMonitorPrefix, ".") {
+			selfMonitorPrefix = selfMonitorPrefix[0:len(selfMonitorPrefix)]
+		}
+		config.SelfMonitorPrefix = selfMonitorPrefix
 	}
 	return config
 }
