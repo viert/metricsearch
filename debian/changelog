@@ -1,3 +1,10 @@
+metricsearch (0.2-15) precise; urgency=low
+
+  * Token length check removed temporarily due to unknown strange bug
+  * self_monitor_prefix config option added
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Wed, 11 Mar 2015 16:46:54 +0400
+
 metricsearch (0.2-14) precise; urgency=low
 
   * Token length check added
