@@ -66,30 +66,33 @@ func NewTree(indexDir string, syncBufferSize int) (*MSTree, error) {
 	return tree, nil
 }
 
-func separateSyncWorker(indexDir string, indexToken string, dataChannel chan string, qsCounter *int64) {
+func separateSyncWorker(indexDir string, indexToken string, dataChannel chan string, qsCounter *int64) bool {
 	var err error
 	idxFilename := fmt.Sprintf("%s/%s.idx", indexDir, indexToken)
 
 	f, err := os.OpenFile(idxFilename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.FileMode(0644))
 	if err != nil {
-		log.Critical("Error opening indexFile %s for writing: %s", idxFilename, err.Error())
-		panic(err)
+		log.Critical("Error opening indexFile %s for writing: %s. Index will not be saved", idxFilename, err.Error())
+		return false
 	}
-	defer f.Close()
-	for line := range dataChannel {
-		atomic.AddInt64(qsCounter, -1)
-		if line == "" {
-			continue
-		} else {
-			_, err := io.WriteString(f, line+"\n")
-			if err != nil {
-				log.Error("Index update error: %s", err.Error())
+	go func() {
+		for line := range dataChannel {
+			atomic.AddInt64(qsCounter, -1)
+			if line == "" {
 				continue
 			} else {
-				log.Debug("Metric '%s.%s' synced to disk", indexToken, line)
+				_, err := io.WriteString(f, line+"\n")
+				if err != nil {
+					log.Error("Index update error: %s", err.Error())
+					continue
+				} else {
+					log.Debug("Metric '%s.%s' synced to disk", indexToken, line)
+				}
 			}
 		}
-	}
+		f.Close()
+	}()
+	return true
 }
 
 func dumpWorker(idxFile string, idxNode *node, ev eventChan) {
@@ -175,8 +178,18 @@ func (t *MSTree) Add(metric string) {
 			t.indexWriteChannels[indexToken] = ch
 			t.indexWriteQueueSizeCtr[indexToken] = new(int64)
 			t.indexWriterMapLock.Unlock()
-			go separateSyncWorker(t.indexDir, indexToken, ch, t.indexWriteQueueSizeCtr[indexToken])
-			log.Notice("Writer created for %s.idx in %s", indexToken, time.Now().Sub(tm).String())
+			workerCreated := separateSyncWorker(t.indexDir, indexToken, ch, t.indexWriteQueueSizeCtr[indexToken])
+			if workerCreated {
+				log.Notice("Writer created for %s.idx in %s", indexToken, time.Now().Sub(tm).String())
+			} else {
+				log.Error("Writer not created for %s.idx", indexToken)
+				t.indexWriterMapLock.Lock()
+				delete(t.indexWriteChannels, indexToken)
+				delete(t.indexWriteQueueSizeCtr, indexToken)
+				close(ch)
+				t.indexWriterMapLock.Unlock()
+				return
+			}
 		}
 		ch <- metricTail
 		atomic.AddInt64(t.indexWriteQueueSizeCtr[indexToken], 1)
