@@ -12,9 +12,9 @@ type node struct {
 	Lock     *sync.Mutex
 }
 
-// const (
-// 	TOKEN_MAX_LENGTH = 100
-// )
+const (
+	TOKEN_MAX_LENGTH = 500
+)
 
 func newNode() *node {
 	return &node{make(map[string]*node), new(sync.Mutex)}
@@ -25,18 +25,18 @@ func (n *node) insert(tokens []string, inserted *bool) {
 		return
 	}
 	n.Lock.Lock()
+	defer n.Lock.Unlock()
 	first, tail := tokens[0], tokens[1:]
-	// if len(first) > TOKEN_MAX_LENGTH {
-	// 	log.Error("Token '%s' is too long, ignoring", first)
-	// 	return
-	// }
+	if len(first) > TOKEN_MAX_LENGTH {
+		log.Error("Token '%s' is too long, ignoring", first)
+		return
+	}
 	child, ok := n.Children[first]
 	if !ok {
 		*inserted = true
 		child = newNode()
 		n.Children[first] = child
 	}
-	n.Lock.Unlock()
 	child.insert(tail, inserted)
 }
 
