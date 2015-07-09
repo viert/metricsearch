@@ -117,7 +117,7 @@ func (n *node) search(pattern string) map[string]*node {
 			lqIndex := strings.LastIndex(pattern, "?")
 			if qIndex != lqIndex || (qIndex != 0 && qIndex != len(pattern)-1) {
 				// more than one ? or one ? in the middle
-				rePattern := "^" + strings.Replace(pattern, "?", ".?", -1) + "$"
+				rePattern := "^" + pattern + "$"
 				re, err := regexp.Compile(rePattern)
 				if err != nil {
 					return results
