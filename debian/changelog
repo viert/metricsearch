@@ -1,3 +1,9 @@
+metricsearch (0.2-18) precise; urgency=low
+
+  * added token validation
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Wed, 30 Sep 2015 20:17:46 +0400
+
 metricsearch (0.2-17) precise; urgency=low
 
   * fixed '?' patter matching
