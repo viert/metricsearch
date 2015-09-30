@@ -1,3 +1,16 @@
+metricsearch (0.2-17) precise; urgency=low
+
+  * fixed '?' patter matching
+
+ -- Kulikovsky Dmitry <dkulikovsky@yandex-team.ru>  Thu, 09 Jul 2015 19:35:13 +0300
+
+metricsearch (0.2-16) precise; urgency=low
+
+  * Token length check fixed (?)
+  * Removed panic on index file creation errors
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Wed, 27 May 2015 16:45:19 +0400
+
 metricsearch (0.2-15) precise; urgency=low
 
   * Token length check removed temporarily due to unknown strange bug
