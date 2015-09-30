@@ -16,6 +16,10 @@ const (
 	TOKEN_MAX_LENGTH = 500
 )
 
+var (
+	VALID_TOKEN_RE = regexp.MustCompile("^[a-z0-9A-Z_-]+$")
+)
+
 func newNode() *node {
 	return &node{make(map[string]*node), new(sync.Mutex)}
 }
@@ -26,11 +30,19 @@ func (n *node) insert(tokens []string, inserted *bool) {
 	}
 	n.Lock.Lock()
 	defer n.Lock.Unlock()
+
 	first, tail := tokens[0], tokens[1:]
 	if len(first) > TOKEN_MAX_LENGTH {
 		log.Error("Token '%s' is too long, ignoring", first)
 		return
 	}
+
+	if !VALID_TOKEN_RE.MatchString(first) {
+		*inserted = false
+		log.Error("Invalid token '%s' received, ignoring", first)
+		return
+	}
+
 	child, ok := n.Children[first]
 	if !ok {
 		*inserted = true
