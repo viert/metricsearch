@@ -78,7 +78,7 @@ func main() {
 	logging.SetFormatter(logging.MustStringFormatter(format))
 	logging.SetLevel(conf.LogLevel, "metricsearch")
 
-	tree, err := mstree.NewTree(conf.IndexDirectory, conf.SyncBufferSize)
+	tree, err := mstree.NewTree(conf.IndexDirectory, conf.SyncBufferSize, conf.ValidateTokens)
 	if err != nil {
 		log.Critical("No way to continue, exiting.")
 		return

@@ -18,6 +18,7 @@ type Config struct {
 	Log               string
 	SelfMonitor       bool
 	SelfMonitorPrefix string
+	ValidateTokens    bool
 }
 
 var (
@@ -74,6 +75,17 @@ func Load(filename string) *Config {
 	config.Log, err = props.GetString("main.log")
 	if err != nil {
 		config.Log = defaultConfig.Log
+	}
+	validateTokens, err := props.GetString("main.validate_tokens")
+	if err == nil {
+		validateTokens = strings.ToLower(validateTokens)
+		if validateTokens == "true" {
+			config.ValidateTokens = true
+		} else {
+			config.ValidateTokens = false
+		}
+	} else {
+		config.ValidateTokens = false
 	}
 	logLevel, err := props.GetString("main.log_level")
 	if err != nil {

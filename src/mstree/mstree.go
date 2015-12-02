@@ -23,6 +23,7 @@ type MSTree struct {
 	indexWriterMapLock     *sync.Mutex
 	TotalMetrics           int64
 	enableSync             bool
+	validateTokens         bool
 }
 type eventChan chan error
 type TreeCreateError struct {
@@ -37,7 +38,7 @@ var (
 	log *logging.Logger = logging.MustGetLogger("metricsearch")
 )
 
-func NewTree(indexDir string, syncBufferSize int) (*MSTree, error) {
+func NewTree(indexDir string, syncBufferSize int, validateTokens bool) (*MSTree, error) {
 	stat, err := os.Stat(indexDir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -58,9 +59,9 @@ func NewTree(indexDir string, syncBufferSize int) (*MSTree, error) {
 	}
 	indexWriteChannels := make(map[string]chan string)
 	indexWriteQSCtr := make(map[string]*int64)
-	root := newNode()
+	root := newNode(validateTokens)
 	enableSync := syncBufferSize > 0
-	tree := &MSTree{indexDir, root, syncBufferSize, indexWriteChannels, indexWriteQSCtr, new(sync.Mutex), 0, enableSync}
+	tree := &MSTree{indexDir, root, syncBufferSize, indexWriteChannels, indexWriteQSCtr, new(sync.Mutex), 0, enableSync, validateTokens}
 	log.Debug("Tree created. indexDir: %s syncBufferSize: %d", indexDir, syncBufferSize)
 	log.Debug("Background index sync started")
 	return tree, nil
@@ -300,7 +301,7 @@ func (t *MSTree) LoadIndex() error {
 			}
 			pref := fName[:len(fName)-4]
 			fName = fmt.Sprintf("%s/%s", t.indexDir, fName)
-			idxNode := newNode()
+			idxNode := newNode(t.validateTokens)
 			t.Root.Children[pref] = idxNode
 			go loadWorker(fName, idxNode, ev, &t.TotalMetrics)
 			procCount++

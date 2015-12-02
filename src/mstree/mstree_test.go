@@ -45,7 +45,7 @@ func prepareTestTree(t testing.TB) {
 		return
 	}
 	dropTestTree()
-	tree, err = NewTree("/tmp/test_index", 1000)
+	tree, err = NewTree("/tmp/test_index", 1000, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -226,7 +226,7 @@ func TestMetricCount(t *testing.T) {
 		t.Errorf("Error syncing tree, not synced after 10 retries 10ms each")
 	}
 
-	tree, err = NewTree("/tmp/test_index", 1000)
+	tree, err = NewTree("/tmp/test_index", 1000, true)
 	if err != nil {
 		t.Error(err)
 	}
