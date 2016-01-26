@@ -1,3 +1,9 @@
+metricsearch (0.2-20) precise; urgency=low
+
+  * no stats when self_monitor is off 
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Tue, 26 Jan 2016 14:32:53 +0400
+
 metricsearch (0.2-19) precise; urgency=low
 
   * validation is now optional via main.validate_tokens property (default is
