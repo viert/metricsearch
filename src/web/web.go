@@ -128,13 +128,13 @@ func (s *Server) statsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) recalcRPS() {
-	ticker := time.Tick(time.Minute)
-	for _ = range ticker {
-		rps.add = float64(totalRequests.add-lastRequests.add) / 60
-		rps.dump = float64(totalRequests.dump-lastRequests.dump) / 60
-		rps.search = float64(totalRequests.search-lastRequests.search) / 60
-		lastRequests = totalRequests
-		if s.selfMonitor {
+	if s.selfMonitor {
+		ticker := time.Tick(time.Minute)
+		for _ = range ticker {
+			rps.add = float64(totalRequests.add-lastRequests.add) / 60
+			rps.dump = float64(totalRequests.dump-lastRequests.dump) / 60
+			rps.search = float64(totalRequests.search-lastRequests.search) / 60
+			lastRequests = totalRequests
 			s.sendMetrics()
 		}
 	}
@@ -156,7 +156,9 @@ func NewServer(tree *mstree.MSTree, selfMonitor bool, selfMonitorPrefix string) 
 	http.HandleFunc("/add", server.addHandler)
 	http.HandleFunc("/debug/stack", server.stackHandler)
 	http.HandleFunc("/dump", server.dumpHandler)
-	http.HandleFunc("/stats", server.statsHandler)
+	if selfMonitor {
+		http.HandleFunc("/stats", server.statsHandler)
+	}
 	return server
 }
 
