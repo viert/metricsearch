@@ -149,6 +149,7 @@ func (t *MSTree) AddNoSync(metric string) bool {
 		return false
 	}
 	tokens := strings.Split(metric, ".")
+
 	inserted := false
 	t.Root.insert(tokens, &inserted)
 	if inserted {

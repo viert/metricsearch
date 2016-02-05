@@ -78,15 +78,20 @@ func Load(filename string) *Config {
 	}
 	validateTokens, err := props.GetString("main.validate_tokens")
 	if err == nil {
-		validateTokens = strings.ToLower(validateTokens)
-		if validateTokens == "true" {
+		switch strings.ToLower(validateTokens) {
+		case "on":
+			fallthrough
+		case "1":
+			fallthrough
+		case "yes":
+			fallthrough
+		case "true":
 			config.ValidateTokens = true
-		} else {
+		default:
 			config.ValidateTokens = false
 		}
-	} else {
-		config.ValidateTokens = false
 	}
+
 	logLevel, err := props.GetString("main.log_level")
 	if err != nil {
 		config.LogLevel = defaultConfig.LogLevel

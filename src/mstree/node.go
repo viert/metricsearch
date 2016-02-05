@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	VALID_TOKEN_RE = regexp.MustCompile("^[a-z0-9A-Z_-]+$")
+	VALID_TOKEN_RE = regexp.MustCompile("^[a-z0-9A-Z_?:/-]+$")
 )
 
 func newNode(validateToken bool) *node {
@@ -35,6 +35,10 @@ func (n *node) insert(tokens []string, inserted *bool) {
 	first, tail := tokens[0], tokens[1:]
 	if len(first) > TOKEN_MAX_LENGTH {
 		log.Error("Token '%s' is too long, ignoring", first)
+		return
+	}
+	if len(first) == 0 {
+		log.Error("Empty token found on insert, ignoring")
 		return
 	}
 
