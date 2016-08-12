@@ -14,6 +14,10 @@ import (
 	"time"
 )
 
+const (
+	TOKEN_MAX_LENGTH = 500
+)
+
 type MSTree struct {
 	indexDir               string
 	Root                   *node
@@ -146,9 +150,25 @@ func (t *MSTree) SyncQueueSize() (int64, int64) {
 
 func (t *MSTree) AddNoSync(metric string) bool {
 	if metric == "" {
+		log.Error("Empty metric insertion")
 		return false
 	}
+
 	tokens := strings.Split(metric, ".")
+
+	for _, token := range tokens {
+
+		if len(token) > TOKEN_MAX_LENGTH {
+			log.Error("Token '%s' is too long, ignoring", token)
+			return false
+		}
+
+		if len(token) == 0 {
+			log.Error("Empty token in metric '%s', ignoring", metric)
+			return false
+		}
+
+	}
 
 	inserted := false
 	t.Root.insert(tokens, &inserted)

@@ -15,6 +15,8 @@ const (
 	Data3 = "abook.qa-test1d_yandex_net.some.metric.total"
 	Data4 = "abook.qa-test2d_yandex_net.some.metric.total"
 
+	DataEmptyToken = "mail.mail_xivahub_var..xivahub.total.1xx"
+
 	LongData = "r9eueKkpYgeezGQsVE5ENyYBpL5XOSgpaskNpNoeVCYfUghzKi89jck8RIcZy3jjOTIQJAAxfpmvFG03Ye2rrTM9c5uup41PCikq8idBObXxBxW07qBtfBP5mxy5MkuhKxCsdnyH06xMn0IF2sILrD9cGu0hFCWs28VwCl4vMifwGd25HIOOgSS3nh8PSsCD34FCgRYcqDnvKVc4s6V0STbTwTIAOHTel3NF56rTETpqAW1Y2XZhP1sbV9VLKMjKq4dfb2Cm7ZZy4JmTGNHtMBEW0M89lQXUnqn4KuLiirENoUaLo33c7L2lh3qWbDXoZQDGIfk7k0cJIL77pP5IKbTCGUEpogSwiuRbwfzhR09F7gZ3x3tDGUliUqV3qWJjtUjw0Qi2w2ixUDSI3OSsacJ90AULlzU8zz8Mbca21odiVuIL2I0uiPxKUOhD3HNdsgdvKugODDCp5acQRNRmoUkp8HkruEVzBCixcyQYdaM7LgbHbJL3i7Jyp3jQ0j8ovhNFrbtoSl074HrPPASrPQPStRWvKbd48dPJwQIfXTydjUmcIwWeEFRXoulA65xGliI1ybqOLXesGOPsaMq5R3Fdn2lFnvmBN1RBZGg4UtABWpRzu.some.valid.tokens"
 
 	InvalidMetric = "'()&%<acx><ScRiPt >prompt(915633)<.if(some){.ops"
@@ -233,6 +235,17 @@ func TestMetricCount(t *testing.T) {
 	tree.LoadIndex()
 	if tree.TotalMetrics != 4 {
 		t.Errorf("Invalid metrics count after loading index: 4 expected, but %d got", tree.TotalMetrics)
+	}
+}
+
+func TestEmptyToken(t *testing.T) {
+	prepareTestTree(t)
+	if tree.TotalMetrics != 4 {
+		t.Errorf("Invalid metrics count after prepare: 4 expected, but %d got", tree.TotalMetrics)
+	}
+	tree.Add(DataEmptyToken)
+	if tree.TotalMetrics != 4 {
+		t.Errorf("Empty token metric inserted into index!")
 	}
 }
 
