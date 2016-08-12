@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -39,7 +40,8 @@ func (tce *TreeCreateError) Error() string {
 }
 
 var (
-	log *logging.Logger = logging.MustGetLogger("metricsearch")
+	log            *logging.Logger = logging.MustGetLogger("metricsearch")
+	VALID_TOKEN_RE                 = regexp.MustCompile("^[a-z0-9A-Z_?:/-]+$")
 )
 
 func NewTree(indexDir string, syncBufferSize int, validateTokens bool) (*MSTree, error) {
@@ -63,7 +65,7 @@ func NewTree(indexDir string, syncBufferSize int, validateTokens bool) (*MSTree,
 	}
 	indexWriteChannels := make(map[string]chan string)
 	indexWriteQSCtr := make(map[string]*int64)
-	root := newNode(validateTokens)
+	root := newNode()
 	enableSync := syncBufferSize > 0
 	tree := &MSTree{indexDir, root, syncBufferSize, indexWriteChannels, indexWriteQSCtr, new(sync.Mutex), 0, enableSync, validateTokens}
 	log.Debug("Tree created. indexDir: %s syncBufferSize: %d", indexDir, syncBufferSize)
@@ -166,6 +168,13 @@ func (t *MSTree) AddNoSync(metric string) bool {
 		if len(token) == 0 {
 			log.Error("Empty token in metric '%s', ignoring", metric)
 			return false
+		}
+
+		if t.validateTokens {
+			if !VALID_TOKEN_RE.MatchString(token) {
+				log.Error("Invalid token '%s' in metric '%s' received, ignoring", token, metric)
+				return false
+			}
 		}
 
 	}
@@ -322,7 +331,7 @@ func (t *MSTree) LoadIndex() error {
 			}
 			pref := fName[:len(fName)-4]
 			fName = fmt.Sprintf("%s/%s", t.indexDir, fName)
-			idxNode := newNode(t.validateTokens)
+			idxNode := newNode()
 			t.Root.Children[pref] = idxNode
 			go loadWorker(fName, idxNode, ev, &t.TotalMetrics)
 			procCount++

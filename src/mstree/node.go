@@ -8,17 +8,12 @@ import (
 )
 
 type node struct {
-	Children      map[string]*node
-	Lock          *sync.Mutex
-	ValidateToken bool
+	Children map[string]*node
+	Lock     *sync.Mutex
 }
 
-var (
-	VALID_TOKEN_RE = regexp.MustCompile("^[a-z0-9A-Z_?:/-]+$")
-)
-
-func newNode(validateToken bool) *node {
-	return &node{make(map[string]*node), new(sync.Mutex), validateToken}
+func newNode() *node {
+	return &node{make(map[string]*node), new(sync.Mutex)}
 }
 
 func (n *node) insert(tokens []string, inserted *bool) {
@@ -30,18 +25,10 @@ func (n *node) insert(tokens []string, inserted *bool) {
 
 	first, tail := tokens[0], tokens[1:]
 
-	if n.ValidateToken {
-		if !VALID_TOKEN_RE.MatchString(first) {
-			*inserted = false
-			log.Error("Invalid token '%s' received, ignoring", first)
-			return
-		}
-	}
-
 	child, ok := n.Children[first]
 	if !ok {
 		*inserted = true
-		child = newNode(n.ValidateToken)
+		child = newNode()
 		n.Children[first] = child
 	}
 	child.insert(tail, inserted)
