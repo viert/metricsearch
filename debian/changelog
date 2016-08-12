@@ -1,3 +1,10 @@
+metricsearch (0.2-22) precise; urgency=low
+
+  * Pre-insert metric tokens checks
+  * Empty token check fixed
+
+ -- Pavel Vorobyov <viert@yandex-team.ru>  Fri, 12 Aug 2016 14:00:52 +0400
+
 metricsearch (0.2-21) precise; urgency=low
 
   * new validator
